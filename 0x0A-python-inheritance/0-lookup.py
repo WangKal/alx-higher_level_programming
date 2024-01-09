@@ -1,10 +1,10 @@
 #!/usr/bin/python3
-    """
-    look up module
-    """
+"""
+Attribute lookup
+"""
+
+
+
 
 def lookup(obj):
-    """
-    look up module
-    """
     return dir(obj)
