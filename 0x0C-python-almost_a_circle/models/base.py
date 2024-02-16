@@ -1,128 +1,213 @@
 #!/usr/bin/python3
-""" Rectangle Class """
+"""Module base.
+Defines a Base class for other classes in the project.
+"""
+
+import json
+import os
+import csv
 
 
-from models.base import Base
+class Base:
+    """Class with:
+    Private class attribute: __nb_objects
+    """
 
+    __nb_objects = 0
 
-class Rectangle(Base):
-    """ Class Rectangle """
+    def __init__(self, id=None):
+        """Initialization of a Base instance.
 
-    def __init__(self, width, height, x=0, y=0, id=None):
-        """ Constructor """
-        self.width = width
-        self.height = height
-        self.x = x
-        self.y = y
-        super().__init__(id)
+        Args:
+            - id: id of the instance
+        """
 
-    @property
-    def width(self):
-        """ Width Getter"""
-        return self.__width
-
-    @width.setter
-    def width(self, value):
-        """ Setter width"""
-        if type(value) is not int:
-            raise TypeError("width must be an integer")
-        elif value <= 0:
-            raise ValueError("width must be > 0")
+        if type(id) != int and id is not None:
+            raise TypeError("id must be an integer")
+        if id is not None:
+            self.id = id
         else:
-            self.__width = value
+            Base.__nb_objects += 1
+            self.id = Base.__nb_objects
 
-    @property
-    def height(self):
-        """ height Getter"""
-        return self.__height
+    @staticmethod
+    def to_json_string(list_dictionaries):
+        """Returns a JSON representation of list_dictionaries.
 
-    @height.setter
-    def height(self, value):
-        """ Setter height"""
-        if type(value) is not int:
-            raise TypeError("height must be an integer")
-        elif value <= 0:
-            raise ValueError("height must be > 0")
+        Args:
+            - list_dictionaries: list of dicts
+
+        Returns: JSON representation of the list
+        """
+
+        if list_dictionaries is None or list_dictionaries == []:
+            return "[]"
+        if (type(list_dictionaries) != list or
+           not all(type(x) == dict for x in list_dictionaries)):
+            raise TypeError("list_dictionaries must be a list of dictionaries")
+        return json.dumps(list_dictionaries)
+
+    @classmethod
+    def save_to_file(cls, list_objs):
+        """Writes the JSON string representation of
+        list_objs to a file.
+
+        Args:
+            - list_objs: list of instances who inherits of Base
+        """
+        """
+        if type(list_objs) != list and list_objs is not None:
+            raise TypeError("list_objs must be a list of instances")
+        if any(issubclass(type(x), Base) is False for x in list_objs):
+            raise TypeError("list_objs must be a list of instances")
+        """
+        if list_objs is None or list_objs == []:
+            jstr = "[]"
         else:
-            self.__height = value
+            jstr = cls.to_json_string([o.to_dictionary() for o in list_objs])
+        filename = cls.__name__ + ".json"
+        with open(filename, 'w') as f:
+                f.write(jstr)
 
-    @property
-    def x(self):
-        """ x Getter"""
-        return self.__x
+    @staticmethod
+    def from_json_string(json_string):
+        """Returns the list of the JSON string representation json_string.
 
-    @x.setter
-    def x(self, value):
-        """ Setter x"""
-        if type(value) is not int:
-            raise TypeError("x must be an integer")
-        elif value < 0:
-            raise ValueError("x must be >= 0")
-        else:
-            self.__x = value
+        Args:
+            - json_string: string to convert to list
+        """
 
-    @property
-    def y(self):
-        """ y Getter"""
-        return self.__y
+        l = []
+        if json_string is not None and json_string != '':
+            if type(json_string) != str:
+                raise TypeError("json_string must be a string")
+            l = json.loads(json_string)
+        return l
 
-    @y.setter
-    def y(self, value):
-        """ Setter y"""
-        if type(value) is not int:
-            raise TypeError("y must be an integer")
-        elif value < 0:
-            raise ValueError("y must be >= 0")
-        else:
-            self.__y = value
+    @classmethod
+    def create(cls, **dictionary):
+        """Returns an instance with all attributes already set.
 
-    def area(self):
-        """ Area """
-        return (self.__height * self.__width)
+        Args:
+            - dictionary: used as **kwargs
 
-    def display(self):
-        """ Print Rectangle """
-        hash_l = "#"
-        if self.width == 0 or self.height == 0:
-            return
-        for i in range(self.y):
-            print()
-        for i in range(self.height):
-            print(' ' * self.x, end='')
-            print(hash_l * self.width)
+        Returns: instance created
+        """
+        if cls.__name__ == 'Rectangle':
+            dummy = cls(1, 1)
+        elif cls.__name__ == 'Square':
+            dummy = cls(1)
+        dummy.update(**dictionary)
+        return dummy
 
-    def update(self, *args, **kwargs):
-        """ args Rectangle """
-        if len(args):
-            for i, j in enumerate(args):
-                if i == 0:
-                    self.id = j
-                elif i == 1:
-                    self.width = j
-                elif i == 3:
-                    self.x = j
-                elif i == 4:
-                    self.y = j
-        else:
-            if "id" in kwargs:
-                self.id = kwargs["id"]
-            if "width" in kwargs:
-                self.width = kwargs["width"]
-            if "height" in kwargs:
-                self.height = kwargs["height"]
-            if "x" in kwargs:
-                self.x = kwargs["x"]
-            if "y" in kwargs:
-                self.y = kwargs["y"]
+    @classmethod
+    def load_from_file(cls):
+        """Returns a list of instances."""
 
-    def __str__(self):
-        """ Str format """
-        st = "[Rectangle] ({:d}) {:d}/{:d} - {:d}/{:d}"
-        st = st.format(self.id, self.x, self.y, self.width, self.height)
-        return st
+        filename = cls.__name__ + ".json"
+        l = []
+        list_dicts = []
+        if os.path.exists(filename):
+            with open(filename, 'r') as f:
+                s = f.read()
+                list_dicts = cls.from_json_string(s)
+                for d in list_dicts:
+                    l.append(cls.create(**d))
+        return l
 
-    def to_dictionary(self):
-        """ Dictionary of rectangle """
-        recdic = {"id": self.id, "width": self.width, "height": self.height,
-                     "x": self.x, "y": self.y}
-        return recdic
+    @classmethod
+    def save_to_file_csv(cls, list_objs):
+        """Serializes list_objs in CSV format
+        and saves it to a file.
+
+        Args:
+            - list_objs: list of instances
+        """
+
+        if (type(list_objs) != list and
+           list_objs is not None or
+           not all(isinstance(x, cls) for x in list_objs)):
+            raise TypeError("list_objs must be a list of instances")
+
+        filename = cls.__name__ + ".csv"
+        with open(filename, 'w') as f:
+            if list_objs is not None:
+                list_objs = [x.to_dictionary() for x in list_objs]
+                if cls.__name__ == 'Rectangle':
+                    fields = ['id', 'width', 'height', 'x', 'y']
+                elif cls.__name__ == 'Square':
+                    fields = ['id', 'size', 'x', 'y']
+                writer = csv.DictWriter(f, fieldnames=fields)
+                writer.writeheader()
+                writer.writerows(list_objs)
+
+    @classmethod
+    def load_from_file_csv(cls):
+        """Deserializes CSV format from a file.
+
+        Returns: list of instances
+        """
+
+        filename = cls.__name__ + ".csv"
+        l = []
+        if os.path.exists(filename):
+            with open(filename, 'r') as f:
+                reader = csv.reader(f, delimiter=',')
+                if cls.__name__ == 'Rectangle':
+                    fields = ['id', 'width', 'height', 'x', 'y']
+                elif cls.__name__ == 'Square':
+                    fields = ['id', 'size', 'x', 'y']
+                for x, row in enumerate(reader):
+                    if x > 0:
+                        i = cls(1, 1)
+                        for j, e in enumerate(row):
+                            if e:
+                                setattr(i, fields[j], int(e))
+                        l.append(i)
+        return l
+
+    @staticmethod
+    def draw(list_rectangles, list_squares):
+        """Opens a Turtle window and draws
+        rectangles and squares.
+
+        Args:
+            - list_rectangles: list of Rectangle instances
+            - list_squares: list of Square instances
+        """
+
+        import turtle
+        import time
+        from random import randrange
+
+        t = turtle.Turtle()
+        t.color("beige")
+        turtle.bgcolor("violet")
+        t.shape("square")
+        t.pensize(8)
+
+        for i in (list_rectangles + list_squares):
+            t.penup()
+            t.setpos(0, 0)
+            turtle.Screen().colormode(255)
+            t.pencolor((randrange(255), randrange(255), randrange(255)))
+            Base.draw_rect(t, i)
+            time.sleep(1)
+        time.sleep(5)
+
+    @staticmethod
+    def draw_rect(t, rect):
+        """Helper method that draws a Rectangle
+        or Square.
+        """
+
+        t.penup()
+        t.setpos(rect.x, rect.y)
+        t.pendown()
+        t.forward(rect.width)
+        t.left(90)
+        t.forward(rect.height)
+        t.left(90)
+        t.forward(rect.width)
+        t.left(90)
+        t.forward(rect.height)
